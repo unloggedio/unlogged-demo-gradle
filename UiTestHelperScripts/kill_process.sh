@@ -1,1 +1,1 @@
-kill -9 $(lsof -i:8080 -t)
+docker stop target-repo

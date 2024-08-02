@@ -1,1 +1,1 @@
-cd ../ && gradle clean bootRun
+cd ../ && docker compose -f conf/docker-compose.yml up -d
