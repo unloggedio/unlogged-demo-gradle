@@ -1,0 +1,64 @@
+version: '3'
+
+services:
+  mysql:
+    image: mysql:latest
+    restart: always
+    networks:
+      - unlogged_network
+    environment:
+      MYSQL_DATABASE: unlogged
+      MYSQL_ROOT_PASSWORD: root_password
+
+  redis:
+    image: redis:latest
+    restart: always
+    networks:
+      - unlogged_network
+    environment:
+      REDIS_MASTER_HOST: redis
+
+  ulserver:
+    image: ghcr.io/unloggedio/unlogged_server:latest
+    ports:
+      - "8123:8123"
+    networks:
+      - unlogged_network
+    volumes:
+      - unlogged_volume:/usr/src/app/local-session
+
+  demo-app:
+    container_name: target-repo
+    build:
+      context: ../
+    volumes:
+      - ~/.unlogged/:/root/.unlogged/
+      - ~/.m2/repository/video/bug/unlogged-sdk:/root/.m2/repository/video/bug/unlogged-sdk
+    ports:
+      - "8080:8080"
+      - "12100:12100"
+    depends_on:
+      - mysql
+      - redis
+      - ulserver
+    networks:
+      - unlogged_network
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/unlogged
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root_password
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_JPA_SHOW_SQL: 'true'
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQLDialect
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: 'true'
+      SPRING_LIQUIBASE_CHANGE_LOG: classpath:db/changelog/db.changelog-master.xml
+
+networks:
+  unlogged_network:
+    driver: bridge
+
+volumes:
+  unlogged_volume:
+    external: true
